@@ -125,13 +125,37 @@ describe('Testing index.js', function() {
     const event = {
       Records:[{ cf: {
           request:  {
-            uri: '//foo/index.html'
+            uri: '///foo/index.html'
           }
         } }] };
     index.handler(event, {}, (err, data) => {
       done(assert.strictEqual(data.status, '301')
           || assert.strictEqual(data.headers.location[0].key, 'Location')
           || assert.strictEqual(data.headers.location[0].value, '/foo/'));
+    });
+  });
+
+  it('/foo/%2e -> no redirect -> /foo/.', function(done) {
+    const event = {
+      Records:[{ cf: {
+          request:  {
+            uri: '/foo/%2e'
+          }
+        } }] };
+    index.handler(event, {}, (err, data) => {
+      done(assert.strictEqual(data.uri, '/foo/.'));
+    });
+  });
+
+  it('///foo/%2e -> no redirect -> ///foo/.', function(done) {
+    const event = {
+      Records:[{ cf: {
+          request:  {
+            uri: '///foo/%2e'
+          }
+        } }] };
+    index.handler(event, {}, (err, data) => {
+      done(assert.strictEqual(data.uri, '///foo/.'));
     });
   });
 
