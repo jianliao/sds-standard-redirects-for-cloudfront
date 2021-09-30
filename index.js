@@ -19,6 +19,8 @@
 exports.handler = (event, context, callback) => {
   const request = event.Records[0].cf.request;
 
+  request.uri = decodeURI(request.uri);
+
   let prefixPath; // needed for 2nd condition
 
   if (request.uri.match('.+/$')) {
