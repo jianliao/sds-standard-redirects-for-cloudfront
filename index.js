@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /*
   Copyright 2017-2021 DigitalSailors e.K.
@@ -19,38 +19,62 @@
 exports.handler = (event, context, callback) => {
   const request = event.Records[0].cf.request;
 
-  request.uri = decodeURI(request.uri);
+  let previousUri = "";
+  let decodedUri = decodeURI(request.uri);
+
+  // Since double encoding (or even more levels of encoding) can be used to obfuscate path traversal attempts,
+  // repeatedly decode the URI until it no longer changes.
+  while (previousUri !== decodedUri) {
+    previousUri = decodedUri;
+    decodedUri = decodeURI(decodedUri);
+  }
+
+  request.uri = decodedUri;
 
   let prefixPath; // needed for 2nd condition
 
-  if (request.uri.match('.+/$')) {
-    request.uri += 'index.html';
-    callback(null, request);
-  } else if (prefixPath = request.uri.match('(.+)/index.html')) {
-    const modifiedPrefixPath = prefixPath[1].replace(/^\/+/, '/');
+  if (request.uri.includes("..")) {
+    // Safety check against potential path traversal or malicious patterns.
     const response = {
-      status: '301',
-      statusDescription: 'Found',
-      headers: {
-        location: [{
-          key: 'Location', value: modifiedPrefixPath + '/',
-        }],
-      }
+      status: "400",
+      statusDescription: "Bad Request",
+      body: "Invalid request format or parameters.",
     };
     callback(null, response);
-  } else if (request.uri.match('/[^/.]+$')) {
-    const modifiedRequestURI = request.uri.replace(/^\/+/, '/');
+  } else if (request.uri.match(".+/$")) {
+    request.uri += "index.html";
+    callback(null, request);
+  } else if ((prefixPath = request.uri.match("(.+)/index.html"))) {
+    const modifiedPrefixPath = prefixPath[1].replace(/^\/+/, "/");
     const response = {
-      status: '301',
-      statusDescription: 'Found',
+      status: "301",
+      statusDescription: "Found",
       headers: {
-        location: [{
-          key: 'Location', value: modifiedRequestURI + '/',
-        }],
-      }
+        location: [
+          {
+            key: "Location",
+            value: modifiedPrefixPath + "/",
+          },
+        ],
+      },
+    };
+    callback(null, response);
+  } else if (request.uri.match("/[^/.]+$")) {
+    const modifiedRequestURI = request.uri.replace(/^\/+/, "/");
+    const response = {
+      status: "301",
+      statusDescription: "Found",
+      headers: {
+        location: [
+          {
+            key: "Location",
+            value: modifiedRequestURI + "/",
+          },
+        ],
+      },
     };
     callback(null, response);
   } else {
     callback(null, request);
   }
-}
+};
