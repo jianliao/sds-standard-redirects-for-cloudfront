@@ -244,4 +244,25 @@ describe("Testing index.js", function () {
       );
     });
   });
+
+  it("/%5C%5Cevil.com/%25252e%25252e%25252f -> HTTP 400 Bad Request", function (done) {
+    const event = {
+      Records: [
+        {
+          cf: {
+            request: {
+              uri: "/%5C%5Cevil.com/%25252e%25252e%25252f",
+            },
+          },
+        },
+      ],
+    };
+    index.handler(event, {}, (err, data) => {
+      done(
+        assert.strictEqual(data.status, "400") ||
+          assert.strictEqual(data.statusDescription, "Bad Request") ||
+          assert.strictEqual(data.body, "Invalid request format or parameters.")
+      );
+    });
+  });
 });

@@ -19,14 +19,14 @@
 exports.handler = (event, context, callback) => {
   const request = event.Records[0].cf.request;
 
-  let previousUri = "";
-  let decodedUri = decodeURI(request.uri);
+  let previousUri = request.uri;
+  let decodedUri = decodeURIComponent(request.uri);
 
   // Since double encoding (or even more levels of encoding) can be used to obfuscate path traversal attempts,
   // repeatedly decode the URI until it no longer changes.
   while (previousUri !== decodedUri) {
     previousUri = decodedUri;
-    decodedUri = decodeURI(decodedUri);
+    decodedUri = decodeURIComponent(decodedUri);
   }
 
   request.uri = decodedUri;
